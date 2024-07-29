@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Arrays;
 
 @Configuration
-@OpenAPIDefinition(info = @Info(title = "STUDY-MATE API 명세서",description = "스터디 메이트 서비스 API 명세서"))
+@OpenAPIDefinition(info = @Info(title = "SPARCS AI 스타트업 해커톤",description = "개발 명세서"))
 public class SwaggerConfig {
 
     @Bean
