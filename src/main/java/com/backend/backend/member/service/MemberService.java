@@ -1,5 +1,6 @@
 package com.backend.backend.member.service;
 
+import com.backend.backend.config.security.SecurityUtil;
 import com.backend.backend.member.domain.Member;
 import com.backend.backend.member.dto.request.MemberRequest;
 import com.backend.backend.member.exception.MemberDuplicate;
@@ -26,5 +27,12 @@ public class MemberService {
         memberRepository.save(member);
 
         return member.getId();
+    }
+
+    public Member getMember() {
+        Member member = SecurityUtil.getCurrentUsername().flatMap(memberRepository::findOneWithAuthoritiesByEmail)
+                .orElseThrow(() -> new RuntimeException("Member not found"));
+
+        return member;
     }
 }
