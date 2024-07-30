@@ -25,4 +25,7 @@ public class MemberRequest {
     @Schema(description = "사용자 전화번호", nullable = false, example = "01046666208")
     @NotBlank
     private String tel;
+    @Schema(description = "사용자 주요 특징", nullable = false, example = "저는 어린이들을 조아함미다.")
+    @NotBlank
+    private String introduction;
 }
