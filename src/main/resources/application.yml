@@ -24,6 +24,12 @@ spring:
 #    username: sa
 #    password:
 #    driver-class-name: org.h2.Driver
+  clova:
+    api:
+      url: ${CLOVA_CHAT}
+      api_gateway_key: ${API_GATEWAY_KEY}
+      api_key: ${API_KEY}
+
     sql:
       init:
         mode: always
@@ -38,10 +44,8 @@ spring:
 #      port: 6379
 #      ssl:
 #        enabled: true
-
-
-
 jwt:
   header: Authorization
   secret: c2lsdmVybmluZS10ZWNoLXNwcmluZy1ib290LWp3dC10dXRvcmlhbC1zZWNyZXQtc2lsdmVybmluZS10ZWNoLXNwcmluZy1ib290LWp3dC10dXRvcmlhbC1zZWNyZXQK
   token-validity-in-seconds: 86400
+
