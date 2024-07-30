@@ -66,6 +66,7 @@ public class SecurityConfig{
                         .requestMatchers("/api/sign-in", "/api/login").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/test-clova").permitAll()
+                        .requestMatchers("/api/first-question/**").permitAll()
                         .requestMatchers("/", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
