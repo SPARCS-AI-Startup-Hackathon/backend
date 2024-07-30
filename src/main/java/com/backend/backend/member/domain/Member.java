@@ -23,17 +23,22 @@ public class Member {
     private String name;
     private Integer age;
     private String tel;
+    private String introduction;
     private boolean activated;
+    private Integer questionNumber;
     @ManyToMany
     private Set<Authority> authorities;
 
     @Builder
-    public Member(String email, String password, String name, Integer age, String tel, boolean activated) {
+    public Member(String email, String password, String name, Integer age, String tel, String introduction, boolean activated, Integer questionNumber) {
         this.email = email;
         this.password = password;
         this.name = name;
         this.age = age;
         this.tel = tel;
+        this.introduction = introduction;
         this.activated = activated;
+        this.questionNumber = 0;
     }
 }
+
