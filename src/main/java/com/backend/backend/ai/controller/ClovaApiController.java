@@ -34,7 +34,7 @@ public class ClovaApiController {
     @PostMapping("/answer")
     @Operation(summary = "사용자의 답변", description = "사용자가 질문에 대한 답변을 한다")
     public void firstAnswer(@RequestBody @Valid ChatMessage message) {
-        clovaApiService.getFirstAnswer(message);
+        clovaApiService.getAnswer(message);
     }
 
     @GetMapping(value = "/question/{token}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
