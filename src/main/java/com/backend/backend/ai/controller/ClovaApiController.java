@@ -53,8 +53,14 @@ public class ClovaApiController {
     }
     @GetMapping("/re-recommend/{token}")
     @Operation(summary = "직업 재추천 받기", description = "직업이 마음에 들지 않을시 재추천 받는다.")
-    public void getReRecommend(@PathVariable String token) throws Exception {
-        // TODO 서비스 로직 구현
+    public Flux<String> getReRecommend(@PathVariable String token) throws Exception {
+        return clovaApiService.getReRecommend(token);
+    }
+
+    @GetMapping("/personal-statement")
+    @Operation(summary = "자기소개서 생성", description = "대화의 기록을 토대로 자기소개서를 받아온다.")
+    public ResponseEntity<PersonalStatementResponse> buildPersonalStatement() throws JsonProcessingException {
+        return ResponseEntity.ok(clovaApiService.buildPersonalStatement());
     }
 }
 
