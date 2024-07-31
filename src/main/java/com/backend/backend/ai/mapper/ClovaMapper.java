@@ -74,14 +74,29 @@ public class ClovaMapper {
                 .build();
     }
 
+    public ClovaRequestList reasonRecommend(String history, String recommended, Member member) {
+        List<ClovaRequest> requestList = new ArrayList<>();
+
+        ClovaRequest reRecommendDate = ClovaRequest.builder()
+                .role("system")
+                .content(Prompt.REASON_PROMPT_FIRST + "나이:" + member.getAge() + "이름:" + member.getName() +
+                        Prompt.REASON_PROMPT_SECOND + recommended + Prompt.REASON_PROMPT_THIRD + history +
+                        Prompt.REASON_PROMPT_FORTH + "너가 추천했던 직업:" + recommended)
+                .build();
+        requestList.add(reRecommendDate);
+
+        return ClovaRequestList.builder()
+                .messages(requestList)
+                .build();
+    }
+
     public ClovaRequestList personalStatement(String history, String recommended, Member member) {
         List<ClovaRequest> requestList = new ArrayList<>();
 
         ClovaRequest personalStatementData = ClovaRequest.builder()
                 .role("system")
                 .content(Prompt.PERSONAL_STATEMENT_PROMPT_FIRST + history + Prompt.PERSONAL_STATEMENT_PROMPT_MEMBER_INFO +
-                        "나이:" + member.getAge() + "이름:" + member.getName()
-                        + member.getName() + Prompt.PERSONAL_STATEMENT_PROMPT_SECOND + recommended +
+                        "나이:" + member.getAge() + "이름:" + member.getName() + Prompt.PERSONAL_STATEMENT_PROMPT_SECOND + recommended +
                         Prompt.PERSONAL_STATEMENT_PROMPT_TIRED + "추천받은 직업이야" + recommended)
                 .build();
 
