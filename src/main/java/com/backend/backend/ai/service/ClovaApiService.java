@@ -70,6 +70,24 @@ public class ClovaApiService {
     public Flux<String> firstSetting(String token) throws Exception {
         String email = tokenProvider.getEmailFromToken(token);
         Member member = memberRepository.findByEmail(email);
+
+        String redisAiKey = "AI" + email;
+        String redisUserKey = "USER" + email;
+        String redisRecommendJob = "AI_RECOMMEND_JOB" + email;
+
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(redisAiKey))) {
+            redisTemplate.delete(redisAiKey);
+            log.info("Deleted existing redisAiKey key: {}", redisAiKey);
+        }
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(redisUserKey))) {
+            redisTemplate.delete(redisUserKey);
+            log.info("Deleted existing redisUserKey key: {}", redisUserKey);
+        }
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(redisRecommendJob))) {
+            redisTemplate.delete(redisRecommendJob);
+            log.info("Deleted existing redisRecommendJob key: {}", redisRecommendJob);
+        }
+
         ClovaRequestList clovaRequestList = clovaMapper.firstQuestion(member);
 
         String body = objectMapper.writeValueAsString(clovaRequestList);
@@ -108,7 +126,7 @@ public class ClovaApiService {
     }
 
 
-    public void getFirstAnswer(ChatMessage message) {
+    public void getAnswer(ChatMessage message) {
         Member member = memberService.getMember();
         String email = member.getEmail();
 
