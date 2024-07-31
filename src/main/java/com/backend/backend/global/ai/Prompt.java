@@ -165,6 +165,17 @@ public class Prompt {
             "스포츠용품판매원 이런 형식으로 너와 대화한 고령자 분에 가장 적절해 보이는 직업 한단어만 출력해." +
             "그전에 너가 추천했던 직업을 추천하면 절대로 안돼!";
 
+    public final static String REASON_PROMPT_FIRST = "너에 관한 정보야" + PROMPT_DATA + "모든 질문이 끝난 후 너는 상담자에게 해당 직업을 추천해" +
+            "줬어 너와 상담한 상담자의 정보는 :";
+
+    public final static String REASON_PROMPT_SECOND = "그리고 너가 상담자에게 추천한 직업은 : ";
+
+    public final static String REASON_PROMPT_THIRD = "그리고 너와 상담자가 함께 대화한 내역은 : ";
+
+    public final static String REASON_PROMPT_FORTH = "해당 정보들을 바탕으로 왜 이런 직업을 추천해줬는지 이유를 알려줘" +
+            " ~~~님과의 대화를 통해 ~~~님은 ~~~에 소질 이 있는 것 같아 보여서 추천드렸어요!" +
+            "이것처럼 ~~님은 ~~해서 ~~한 것같아서 이러한 추천을 했다는 형식으로 이유를 말해야해.";
+
     public final static String PERSONAL_STATEMENT_PROMPT_FIRST = "너는 자기소개서를 작성해주는 비서야.\n" +
             "\n" +
             "상담사, 고령자의 대화 텍스트, 고령자가 선택한 일자리를 모두 고려해서 이에 필요한 자기소개서를 작성해줘.\n" +

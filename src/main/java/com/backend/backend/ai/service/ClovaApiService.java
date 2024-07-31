@@ -2,10 +2,7 @@ package com.backend.backend.ai.service;
 
 import com.backend.backend.ai.dto.request.ChatMessage;
 import com.backend.backend.ai.dto.request.ClovaRequestList;
-import com.backend.backend.ai.dto.response.ChatList;
-import com.backend.backend.ai.dto.response.ChatResponse;
-import com.backend.backend.ai.dto.response.JobRecommend;
-import com.backend.backend.ai.dto.response.SttResponse;
+import com.backend.backend.ai.dto.response.*;
 import com.backend.backend.ai.mapper.ClovaMapper;
 import com.backend.backend.config.security.jwt.TokenProvider;
 import com.backend.backend.global.common.CommonUtil;
@@ -425,6 +422,35 @@ public class ClovaApiService {
     }
     private String replaceString(String content) {
         return content.replace("\n", "");
+    }
+
+    public RecommendReason getReason() throws JsonProcessingException {
+        Member member = memberService.getMember();
+        String email = member.getEmail();
+
+        ChatList chatHistory = getChatHistory();
+        String history = objectMapper.writeValueAsString(chatHistory);
+
+        String recommend = redisTemplate.opsForList().leftPop("AI_RECOMMEND_JOB" + email);
+
+        ClovaRequestList clovaRequestList = clovaMapper.reasonRecommend(history, recommend, member);
+
+        String body = objectMapper.writeValueAsString(clovaRequestList);
+
+        RestTemplate restTemplate = new RestTemplate();
+        String url = apiUrl;
+        HttpHeaders headers = buildHeaders();
+        HttpEntity<String> entity = new HttpEntity<>(body, headers);
+
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+        String responseBody = response.getBody();
+
+        JsonNode rootNode = objectMapper.readTree(responseBody);
+        String content = rootNode.path("result").path("message").path("content").asText();
+
+        return RecommendReason.builder()
+                .reason(content)
+                .build();
     }
 }
 
