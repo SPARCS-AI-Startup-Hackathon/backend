@@ -11,6 +11,7 @@ public class PersonalStatementMapper {
     public PersonalStatementResponse toResponse(PersonalStatement ps) {
         return PersonalStatementResponse.builder()
                 .name(ps.getName())
+                .job(ps.getJob())
                 .content(ps.getContent())
                 .build();
     }

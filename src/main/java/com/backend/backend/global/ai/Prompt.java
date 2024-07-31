@@ -171,14 +171,12 @@ public class Prompt {
             "\n" +
             "자기소개서를 작성할 때 지켜야 할 원칙을 알려줄게.\n" +
             "\n" +
-            "맨 처음에 ‘(직업)을 희망하는 지원자, (이름)입니다.’ 라고 적어줘. 개인정보는 대화 내역을 참고해\n" +
-            "\n" +
-            " (예시) 글쓰기 방과후학교 강사를 희망하는 지원자, 김수민입니다.\n" +
-            "\n" +
             "모든 항목은 항목명 아래에 내용, 그 다음 항목명 아래에 내용, 그 다음 항목명 아래에 내용 의 방식으로 깔끔하게 만들어줘.\n" +
             "여기 취업 상담사와 대화했던 내역들이야 : ";
 
-    public final static String PERSONAL_STATEMENT_PROMPT_SECOND = "그리고 이건 상담사에게 최종적으로 추천받은 내용이야 : ";
+    public final static String PERSONAL_STATEMENT_PROMPT_MEMBER_INFO = "이건 상담받은사람의 정보야 : ";
+
+    public final static String PERSONAL_STATEMENT_PROMPT_SECOND = "그리고 이건 상담사에게 최종적으로 추천받은 직업이야 : ";
 
     public final static String PERSONAL_STATEMENT_PROMPT_TIRED = "\n이 대화 내역과 추천받은 직업을 바탕으로 자기소개서를 작성할건데 규칙이 있어.\n" +
             "첫 번째 항목명은 '기본 정보' 라고 적어줘. 그 아래 내용에는 지원자의 기본 정보를 적어줘. 이름, 생년월일 등의 정보는 회원가입 할 때 기입한 정보를 이용하면 돼.\n" +
