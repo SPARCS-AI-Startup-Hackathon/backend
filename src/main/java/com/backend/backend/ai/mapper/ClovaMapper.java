@@ -59,7 +59,7 @@ public class ClovaMapper {
                 .build();
     }
 
-    public ClovaRequestList reRecommend(String history, String recommended) {
+    public ClovaRequestList reRecommend(String history, List<String> recommended) {
         List<ClovaRequest> requestList = new ArrayList<>();
 
         ClovaRequest reRecommendDate = ClovaRequest.builder()
@@ -79,9 +79,10 @@ public class ClovaMapper {
 
         ClovaRequest personalStatementData = ClovaRequest.builder()
                 .role("system")
-                .content(Prompt.PERSONAL_STATEMENT_PROMPT_FIRST + history + Prompt.PERSONAL_STATEMENT_PROMPT_SECOND +
+                .content(Prompt.PERSONAL_STATEMENT_PROMPT_FIRST + history + Prompt.PERSONAL_STATEMENT_PROMPT_SECOND + recommended +
                         Prompt.PERSONAL_STATEMENT_PROMPT_TIRED)
                 .build();
+
         requestList.add(personalStatementData);
 
         return ClovaRequestList.builder()
