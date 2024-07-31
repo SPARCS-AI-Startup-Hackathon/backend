@@ -37,7 +37,7 @@ public class ClovaApiController {
         return clovaApiService.callChatCompletionApi(token);
     }
     @PostMapping("/sound-to-text")
-    @Operation(summary = "음성녹음 분석", description = "음성녹음 분석 API")
+    @Operation(summary = "음성녹음 답변", description = "음성녹음을 통해 사용자의 답변을 텍스트로 추출한다")
     public ResponseEntity<SttResponse> getTextByFile(@RequestParam("file") MultipartFile file) {
         return ResponseEntity.ok(clovaApiService.getTextByFile(file));
     }
