@@ -87,7 +87,7 @@ public class ClovaApiService {
                             String content = contentNode.asText();
                             log.info("최종컨텐츠:{}", content);
                             redisTemplate.opsForList().rightPush("AI" + email, content);
-                            log.info("RedisContentAI:{}",redisTemplate.opsForList().range("AI" + email, 0, -1));
+                            log.info("RedisContentAI:{}", redisTemplate.opsForList().range("AI" + email, 0, -1));
                         } catch (JsonProcessingException e) {
                             throw new RuntimeException(e);
                         }
@@ -119,7 +119,7 @@ public class ClovaApiService {
     public Flux<String> callChatCompletionApi(String token) throws JsonProcessingException {
         String email = tokenProvider.getEmailFromToken(token);
 
-        ChatList chatHistory = getChatHistory();
+        ChatList chatHistory = getChatHistory(email);
         String history = objectMapper.writeValueAsString(chatHistory);
 
         ClovaRequestList clovaRequestList = clovaMapper.questionBuild(history);
@@ -225,6 +225,37 @@ public class ClovaApiService {
         String name = member.getName();
         ChatList chatList = new ChatList();
         String email = member.getEmail();
+
+        List<String> aiQuestions = redisTemplate.opsForList().range("AI" + email, 0, -1);
+        List<String> userAnswers = redisTemplate.opsForList().range("USER" + email, 0, -1);
+
+        int size = Math.min(aiQuestions.size(), userAnswers.size());
+
+        for (int i = 0; i < size; i++) {
+            String aiQuestion = aiQuestions.get(i);
+            String userAnswer = userAnswers.get(i);
+
+            chatList.getChatResponses().add(ChatResponse.builder()
+                    .sender("빛나래")
+                    .content(aiQuestion)
+                    .build());
+            chatList.getChatResponses().add(ChatResponse.builder()
+                    .sender(name)
+                    .content(userAnswer)
+                    .build());
+        }
+        // 질문의 수가 답변의 수보다 많다면 마지막 질문 추가
+        if (aiQuestions.size() > userAnswers.size()) {
+            chatList.getChatResponses().add(new ChatResponse("빛나래", aiQuestions.get(size)));
+        }
+
+        return chatList;
+    }
+
+    public ChatList getChatHistory(String email) {
+        Member member = memberRepository.findByEmail(email);
+        String name = member.getName();
+        ChatList chatList = new ChatList();
 
         List<String> aiQuestions = redisTemplate.opsForList().range("AI" + email, 0, -1);
         List<String> userAnswers = redisTemplate.opsForList().range("USER" + email, 0, -1);
