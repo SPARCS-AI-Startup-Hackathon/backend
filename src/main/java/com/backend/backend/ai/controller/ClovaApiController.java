@@ -2,6 +2,7 @@ package com.backend.backend.ai.controller;
 
 import com.backend.backend.ai.dto.request.ChatMessage;
 import com.backend.backend.ai.dto.response.ChatList;
+import com.backend.backend.ai.dto.response.JobRecommend;
 import com.backend.backend.ai.dto.response.SttResponse;
 import com.backend.backend.ai.service.ClovaApiService;
 import com.backend.backend.personalstatement.dto.response.PersonalStatementResponse;
@@ -54,16 +55,16 @@ public class ClovaApiController {
         return ResponseEntity.ok(clovaApiService.getChatHistory());
     }
 
-    @GetMapping("/recommend/{token}")
+    @GetMapping("/recommend")
     @Operation(summary = "직업 추천 받기", description = "사용자가 지금까지 했던 대화내역을 기반으로 직업을 추천받는다")
-    public Flux<String> getRecommend(@PathVariable String token) throws Exception {
-        return clovaApiService.getRecommend(token);
+    public ResponseEntity<JobRecommend> getRecommend() throws JsonProcessingException {
+        return ResponseEntity.ok(clovaApiService.getRecommend());
     }
 
-    @GetMapping("/re-recommend/{token}")
+    @GetMapping("/re-recommend")
     @Operation(summary = "직업 재추천 받기", description = "직업이 마음에 들지 않을시 재추천 받는다.")
-    public Flux<String> getReRecommend(@PathVariable String token) throws Exception {
-        return clovaApiService.getReRecommend(token);
+    public ResponseEntity<JobRecommend> getReRecommend() throws JsonProcessingException {
+        return ResponseEntity.ok().body(clovaApiService.getReRecommend());
     }
 
     @GetMapping("/personal-statement")
