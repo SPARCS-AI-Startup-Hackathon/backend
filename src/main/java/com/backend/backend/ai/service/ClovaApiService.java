@@ -357,7 +357,7 @@ public class ClovaApiService {
         String history = objectMapper.writeValueAsString(chatHistory);
         String recommend = redisTemplate.opsForList().leftPop("AI_RECOMMEND_JOB" + email);
 
-        ClovaRequestList clovaRequestList = clovaMapper.personalStatement(history, recommend);
+        ClovaRequestList clovaRequestList = clovaMapper.personalStatement(history, recommend, member);
 
         String body = objectMapper.writeValueAsString(clovaRequestList);
 
@@ -379,6 +379,7 @@ public class ClovaApiService {
         String psContent = replaceString(markdown);
 
         PersonalStatementResponse personalStatementResponse = PersonalStatementResponse.builder()
+                .job(recommend)
                 .content(psContent)
                 .name(member.getName())
                 .build();
