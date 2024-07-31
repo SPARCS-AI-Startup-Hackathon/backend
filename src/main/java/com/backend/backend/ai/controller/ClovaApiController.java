@@ -3,7 +3,7 @@ package com.backend.backend.ai.controller;
 import com.backend.backend.ai.dto.request.ChatMessage;
 import com.backend.backend.ai.dto.response.ChatList;
 import com.backend.backend.ai.dto.response.JobRecommend;
-import com.backend.backend.ai.dto.response.SttResponse;
+import com.backend.backend.ai.dto.response.RecommendReason;
 import com.backend.backend.ai.service.ClovaApiService;
 import com.backend.backend.personalstatement.dto.response.PersonalStatementResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -14,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 
@@ -42,13 +41,6 @@ public class ClovaApiController {
     public Flux<String> buildQuestion(@PathVariable String token) throws Exception {
         return clovaApiService.callChatCompletionApi(token);
     }
-
-    @PostMapping("/sound-to-text")
-    @Operation(summary = "음성녹음 답변", description = "음성녹음을 통해 사용자의 답변을 텍스트로 추출한다")
-    public ResponseEntity<SttResponse> getTextByFile(@RequestParam("file") MultipartFile file) {
-        return ResponseEntity.ok(clovaApiService.getTextByFile(file));
-    }
-
     @GetMapping("/get-chat")
     @Operation(summary = "채팅 내역 보기", description = "AI와 주고받은 채팅내역을 조회한다")
     public ResponseEntity<ChatList> getChatHistory() {
@@ -59,6 +51,12 @@ public class ClovaApiController {
     @Operation(summary = "직업 추천 받기", description = "사용자가 지금까지 했던 대화내역을 기반으로 직업을 추천받는다")
     public ResponseEntity<JobRecommend> getRecommend() throws JsonProcessingException {
         return ResponseEntity.ok(clovaApiService.getRecommend());
+    }
+
+    @GetMapping("/recommend/reason")
+    @Operation(summary = "직업 추천 이유", description = "사용자가 추천받은 이유를 응답한다.")
+    public ResponseEntity<RecommendReason> getReason() throws JsonProcessingException {
+        return ResponseEntity.ok(clovaApiService.getReason());
     }
 
     @GetMapping("/re-recommend")
