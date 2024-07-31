@@ -22,7 +22,7 @@ public class PersonalStatementService {
     private final PersonalStatementRepository personalStatementRepository;
     private final PersonalStatementMapper personalStatementMapper;
     @Transactional
-    public void save(PersonalStatementResponse request, Member member) {
+    public PersonalStatement save(PersonalStatementResponse request, Member member) {
         PersonalStatement personalStatement = PersonalStatement.builder()
                 .name(request.getName())
                 .job(request.getJob())
@@ -30,7 +30,7 @@ public class PersonalStatementService {
                 .content(request.getContent())
                 .build();
 
-        personalStatementRepository.save(personalStatement);
+        return personalStatementRepository.save(personalStatement);
     }
 
     public List<PersonalStatementResponse> getMembersPs() {

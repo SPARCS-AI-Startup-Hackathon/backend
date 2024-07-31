@@ -10,6 +10,7 @@ public class PersonalStatementMapper {
 
     public PersonalStatementResponse toResponse(PersonalStatement ps) {
         return PersonalStatementResponse.builder()
+                .id(ps.getId())
                 .name(ps.getName())
                 .job(ps.getJob())
                 .content(ps.getContent())
