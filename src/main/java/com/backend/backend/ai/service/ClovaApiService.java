@@ -4,6 +4,7 @@ import com.backend.backend.ai.dto.request.ChatMessage;
 import com.backend.backend.ai.dto.request.ClovaRequestList;
 import com.backend.backend.ai.dto.response.ChatList;
 import com.backend.backend.ai.dto.response.ChatResponse;
+import com.backend.backend.ai.dto.response.JobRecommend;
 import com.backend.backend.ai.dto.response.SttResponse;
 import com.backend.backend.ai.mapper.ClovaMapper;
 import com.backend.backend.config.security.jwt.TokenProvider;
@@ -289,8 +290,8 @@ public class ClovaApiService {
         return chatList;
     }
 
-    public Flux<String> getRecommend(String token) throws JsonProcessingException {
-        String email = tokenProvider.getEmailFromToken(token);
+    public JobRecommend getRecommend() throws JsonProcessingException {
+        String email = memberService.getMember().getEmail();
 
         ChatList chatHistory = getChatHistory();
         String history = objectMapper.writeValueAsString(chatHistory);
@@ -299,81 +300,53 @@ public class ClovaApiService {
 
         String body = objectMapper.writeValueAsString(clovaRequestList);
 
-        return clovaWebClient.post()
-                .uri(apiUrl)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .header(HttpHeaders.ACCEPT, MediaType.TEXT_EVENT_STREAM_VALUE)
-                .header("X-NCP-CLOVASTUDIO-API-KEY", apiKey)
-                .header("X-NCP-APIGW-API-KEY", gatewayKey)
-                .bodyValue(body)
-                .retrieve()
-                .bodyToFlux(String.class)
-                .delayElements(Duration.ofMillis(200))
-                .doOnNext(response -> {
-                    log.info("RESPONSE: {}", response);
-                    if (response.contains("seed")) {
-                        try {
-                            JsonNode jsonNode = objectMapper.readTree(response);
-                            JsonNode messageNode = jsonNode.get("message");
-                            JsonNode contentNode = messageNode.get("content");
-                            String content = contentNode.asText();
-                            redisTemplate.opsForValue().set("AI_RECOMMEND_JOB" + email, content);
-                            log.info("AI_RECOMMEND_JOB : {}", redisTemplate.opsForValue().get("AI_RECOMMEND_JOB" + email));
-                        } catch (JsonProcessingException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                })
-                .doFinally(signalType -> {
-                    if (signalType == SignalType.ON_COMPLETE) {
-                        log.info("Streaming completed.");
-                    }
-                });
+        RestTemplate restTemplate = new RestTemplate();
+        String url = apiUrl;
+        HttpHeaders headers = buildHeaders();
+        HttpEntity<String> entity = new HttpEntity<>(body, headers);
+
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+
+        String responseBody = response.getBody();
+
+        JsonNode rootNode = objectMapper.readTree(responseBody);
+        String content = rootNode.path("result").path("message").path("content").asText();
+
+        redisTemplate.opsForList().rightPush("AI_RECOMMEND_JOB" + email, content);
+
+        return JobRecommend.builder()
+                .recommendJob(content)
+                .build();
     }
 
-    public Flux<String> getReRecommend(String token) throws JsonProcessingException {
-        String email = tokenProvider.getEmailFromToken(token);
+    public JobRecommend getReRecommend() throws JsonProcessingException {
+        String email = memberService.getMember().getEmail();
 
         ChatList chatHistory = getChatHistory();
         String history = objectMapper.writeValueAsString(chatHistory);
 
+        List<String> recommended = redisTemplate.opsForList().range("AI_RECOMMEND_JOB" + email, 0, -1);
 
-        String recommend = redisTemplate.opsForValue().get("AI_RECOMMEND_JOB" + email);
-
-        ClovaRequestList clovaRequestList = clovaMapper.reRecommend(history,recommend);
+        ClovaRequestList clovaRequestList = clovaMapper.reRecommend(history,recommended);
 
         String body = objectMapper.writeValueAsString(clovaRequestList);
 
-        return clovaWebClient.post()
-                .uri(apiUrl)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .header(HttpHeaders.ACCEPT, MediaType.TEXT_EVENT_STREAM_VALUE)
-                .header("X-NCP-CLOVASTUDIO-API-KEY", apiKey)
-                .header("X-NCP-APIGW-API-KEY", gatewayKey)
-                .bodyValue(body)
-                .retrieve()
-                .bodyToFlux(String.class)
-                .delayElements(Duration.ofMillis(200))
-                .doOnNext(response -> {
-                    log.info("RESPONSE: {}", response);
-                    if (response.contains("seed")) {
-                        try {
-                            JsonNode jsonNode = objectMapper.readTree(response);
-                            JsonNode messageNode = jsonNode.get("message");
-                            JsonNode contentNode = messageNode.get("content");
-                            String content = contentNode.asText();
-                            redisTemplate.opsForValue().set("AI_RECOMMEND_JOB" + email, content);
-                            log.info("AI_RECOMMEND_JOB : {}", redisTemplate.opsForValue().get("AI_RECOMMEND_JOB" + email));
-                        } catch (JsonProcessingException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                })
-                .doFinally(signalType -> {
-                    if (signalType == SignalType.ON_COMPLETE) {
-                        log.info("Streaming completed.");
-                    }
-                });
+        RestTemplate restTemplate = new RestTemplate();
+        String url = apiUrl;
+        HttpHeaders headers = buildHeaders();
+        HttpEntity<String> entity = new HttpEntity<>(body, headers);
+
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+        String responseBody = response.getBody();
+
+        JsonNode rootNode = objectMapper.readTree(responseBody);
+        String content = rootNode.path("result").path("message").path("content").asText();
+
+        redisTemplate.opsForList().rightPush("AI_RECOMMEND_JOB" + email, content);
+
+        return JobRecommend.builder()
+                .recommendJob(content)
+                .build();
     }
     @Transactional
     public PersonalStatementResponse buildPersonalStatement() throws JsonProcessingException {
@@ -382,7 +355,7 @@ public class ClovaApiService {
 
         ChatList chatHistory = getChatHistory(email);
         String history = objectMapper.writeValueAsString(chatHistory);
-        String recommend = redisTemplate.opsForValue().get("AI_RECOMMEND_JOB" + email);
+        String recommend = redisTemplate.opsForList().leftPop("AI_RECOMMEND_JOB" + email);
 
         ClovaRequestList clovaRequestList = clovaMapper.personalStatement(history, recommend);
 
