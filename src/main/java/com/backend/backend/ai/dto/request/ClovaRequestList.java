@@ -15,6 +15,8 @@ import java.util.List;
 @NoArgsConstructor
 public class ClovaRequestList {
     private List<ClovaRequest> messages;
+    private double temperature = 1;
+    private int maxTokens = 1000;
 
     @Builder
     public ClovaRequestList(List<ClovaRequest> messages) {

@@ -32,6 +32,12 @@ spring:
       api_gateway_key: ${API_GATEWAY_KEY}
       api_key: ${API_KEY}
 
+  stt:
+    api:
+      client_id : ${STT_CLIENT_ID}
+      client_secret : ${CLIENT_SECRET}
+      stt_url : ${STT_URL}
+
     sql:
       init:
         mode: always
