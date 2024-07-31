@@ -392,7 +392,10 @@ public class ClovaApiService {
         HttpEntity<String> entity = new HttpEntity<>(body, headers);
 
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
-        String content = response.getBody();
+        String responseBody = response.getBody();
+
+        JsonNode rootNode = objectMapper.readTree(responseBody);
+        String content = rootNode.path("result").path("message").path("content").asText();
 
         PersonalStatementResponse personalStatementResponse = PersonalStatementResponse.builder()
                 .content(content)
