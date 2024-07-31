@@ -25,6 +25,7 @@ public class PersonalStatementService {
     public void save(PersonalStatementResponse request, Member member) {
         PersonalStatement personalStatement = PersonalStatement.builder()
                 .name(request.getName())
+                .job(request.getJob())
                 .member(member)
                 .content(request.getContent())
                 .build();
