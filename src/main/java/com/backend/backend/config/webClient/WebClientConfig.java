@@ -12,10 +12,20 @@ public class WebClientConfig {
 
     @Value("${spring.clova.api.url}")
     private String apiUrl;
+
+    @Value("${spring.stt.api.stt_url}")
+    private String sttUrl;
     @Bean
-    public WebClient webClient(WebClient.Builder builder) {
+    public WebClient clovaWebClient(WebClient.Builder builder) {
         return builder
                 .baseUrl(apiUrl)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, String.valueOf(MediaType.TEXT_EVENT_STREAM))
+                .build();
+    }
+    @Bean
+    public WebClient sttWebClient(WebClient.Builder builder) {
+        return builder
+                .baseUrl(sttUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, String.valueOf(MediaType.TEXT_EVENT_STREAM))
                 .build();
     }
