@@ -7,6 +7,7 @@ import com.backend.backend.ai.dto.response.ChatResponse;
 import com.backend.backend.ai.dto.response.SttResponse;
 import com.backend.backend.ai.mapper.ClovaMapper;
 import com.backend.backend.config.security.jwt.TokenProvider;
+import com.backend.backend.global.common.CommonUtil;
 import com.backend.backend.member.domain.Member;
 import com.backend.backend.member.repository.MemberRepository;
 import com.backend.backend.member.service.MemberService;
@@ -61,6 +62,7 @@ public class ClovaApiService {
     private final MemberRepository memberRepository;
     private final TokenProvider tokenProvider;
     private final PersonalStatementService personalStatementService;
+    private final CommonUtil commonUtil;
     /**
      * 회원의 정보를 바탕으로 클라이언트측에 질문 하나 생성해서 던져주기
      */
@@ -397,8 +399,14 @@ public class ClovaApiService {
         JsonNode rootNode = objectMapper.readTree(responseBody);
         String content = rootNode.path("result").path("message").path("content").asText();
 
+        String format = formatContentToMarkdown(content);
+
+        String markdown = commonUtil.markdown(format);
+
+        String psContent = replaceString(markdown);
+
         PersonalStatementResponse personalStatementResponse = PersonalStatementResponse.builder()
-                .content(content)
+                .content(psContent)
                 .name(member.getName())
                 .build();
 
@@ -415,4 +423,16 @@ public class ClovaApiService {
 
         return headers;
     }
+
+    private String formatContentToMarkdown(String content) {
+        return content
+                .replace("\\n", "")
+                .replaceAll(" +", " ")
+                .replaceAll("(?m)^\\s+", "")
+                .trim();
+    }
+    private String replaceString(String content) {
+        return content.replace("\n", "");
+    }
 }
+
