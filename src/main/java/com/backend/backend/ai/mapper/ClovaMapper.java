@@ -36,7 +36,7 @@ public class ClovaMapper {
 
         ClovaRequest promptUpdate = ClovaRequest.builder()
                 .role("system")
-                .content(Prompt.PROMPT_DATA + "추가로 이건 현재까지 대화내역이야\n" + history + "\n" + Prompt.UPDATE_PROMPT+Prompt.QUESTION_RULE)
+                .content(Prompt.PROMPT_DATA + "추가로 이건 너(빛나래)와 사용자의 현재까지 대화내역이야\n" + history + "\n" + Prompt.UPDATE_PROMPT+Prompt.QUESTION_RULE)
                 .build();
         requestList.add(promptUpdate);
 
