@@ -74,13 +74,15 @@ public class ClovaMapper {
                 .build();
     }
 
-    public ClovaRequestList personalStatement(String history, String recommended) {
+    public ClovaRequestList personalStatement(String history, String recommended, Member member) {
         List<ClovaRequest> requestList = new ArrayList<>();
 
         ClovaRequest personalStatementData = ClovaRequest.builder()
                 .role("system")
-                .content(Prompt.PERSONAL_STATEMENT_PROMPT_FIRST + history + Prompt.PERSONAL_STATEMENT_PROMPT_SECOND + recommended +
-                        Prompt.PERSONAL_STATEMENT_PROMPT_TIRED)
+                .content(Prompt.PERSONAL_STATEMENT_PROMPT_FIRST + history + Prompt.PERSONAL_STATEMENT_PROMPT_MEMBER_INFO +
+                        "나이:" + member.getAge() + "이름:" + member.getName()
+                        + member.getName() + Prompt.PERSONAL_STATEMENT_PROMPT_SECOND + recommended +
+                        Prompt.PERSONAL_STATEMENT_PROMPT_TIRED + "추천받은 직업이야" + recommended)
                 .build();
 
         requestList.add(personalStatementData);
