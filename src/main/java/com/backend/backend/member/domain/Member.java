@@ -25,12 +25,10 @@ public class Member {
     private String tel;
     private String introduction;
     private boolean activated;
-    private Integer questionNumber;
     @ManyToMany
     private Set<Authority> authorities;
-
     @Builder
-    public Member(String email, String password, String name, Integer age, String tel, String introduction, boolean activated, Integer questionNumber) {
+    public Member(String email, String password, String name, Integer age, String tel, String introduction, boolean activated) {
         this.email = email;
         this.password = password;
         this.name = name;
@@ -38,7 +36,6 @@ public class Member {
         this.tel = tel;
         this.introduction = introduction;
         this.activated = activated;
-        this.questionNumber = 0;
     }
 }
 

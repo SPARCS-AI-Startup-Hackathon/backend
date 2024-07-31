@@ -24,6 +24,7 @@ public class MemberMapper {
                 .email(request.getEmail())
                 .name(request.getName())
                 .activated(true)
+                .introduction(request.getIntroduction())
                 .build();
     }
 
