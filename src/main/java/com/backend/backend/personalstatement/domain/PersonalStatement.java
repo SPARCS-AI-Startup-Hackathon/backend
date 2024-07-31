@@ -14,6 +14,7 @@ public class PersonalStatement {
     @Column(name = "personal_statement_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private String job;
     private String name;
     @Lob
     @Column(columnDefinition = "LONGTEXT")
@@ -26,9 +27,10 @@ public class PersonalStatement {
         this.content = content;
     }
     @Builder
-    public PersonalStatement(String name, String content, Member member) {
+    public PersonalStatement(String name, String content, Member member, String job) {
         this.name = name;
         this.content = content;
         this.member = member;
+        this.job = job;
     }
 }
