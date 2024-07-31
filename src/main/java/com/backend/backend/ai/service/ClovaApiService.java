@@ -10,6 +10,8 @@ import com.backend.backend.config.security.jwt.TokenProvider;
 import com.backend.backend.member.domain.Member;
 import com.backend.backend.member.repository.MemberRepository;
 import com.backend.backend.member.service.MemberService;
+import com.backend.backend.personalstatement.dto.response.PersonalStatementResponse;
+import com.backend.backend.personalstatement.service.PersonalStatementService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,9 +20,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.InvalidFileNameException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
@@ -57,6 +60,7 @@ public class ClovaApiService {
     private final WebClient sttWebClient;
     private final MemberRepository memberRepository;
     private final TokenProvider tokenProvider;
+    private final PersonalStatementService personalStatementService;
     /**
      * 회원의 정보를 바탕으로 클라이언트측에 질문 하나 생성해서 던져주기
      */
@@ -323,6 +327,89 @@ public class ClovaApiService {
                         log.info("Streaming completed.");
                     }
                 });
+    }
 
+    public Flux<String> getReRecommend(String token) throws JsonProcessingException {
+        String email = tokenProvider.getEmailFromToken(token);
+
+        ChatList chatHistory = getChatHistory();
+        String history = objectMapper.writeValueAsString(chatHistory);
+
+
+        String recommend = redisTemplate.opsForValue().get("AI_RECOMMEND_JOB" + email);
+
+        ClovaRequestList clovaRequestList = clovaMapper.reRecommend(history,recommend);
+
+        String body = objectMapper.writeValueAsString(clovaRequestList);
+
+        return clovaWebClient.post()
+                .uri(apiUrl)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.ACCEPT, MediaType.TEXT_EVENT_STREAM_VALUE)
+                .header("X-NCP-CLOVASTUDIO-API-KEY", apiKey)
+                .header("X-NCP-APIGW-API-KEY", gatewayKey)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToFlux(String.class)
+                .delayElements(Duration.ofMillis(200))
+                .doOnNext(response -> {
+                    log.info("RESPONSE: {}", response);
+                    if (response.contains("seed")) {
+                        try {
+                            JsonNode jsonNode = objectMapper.readTree(response);
+                            JsonNode messageNode = jsonNode.get("message");
+                            JsonNode contentNode = messageNode.get("content");
+                            String content = contentNode.asText();
+                            redisTemplate.opsForValue().set("AI_RECOMMEND_JOB" + email, content);
+                            log.info("AI_RECOMMEND_JOB : {}", redisTemplate.opsForValue().get("AI_RECOMMEND_JOB" + email));
+                        } catch (JsonProcessingException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                })
+                .doFinally(signalType -> {
+                    if (signalType == SignalType.ON_COMPLETE) {
+                        log.info("Streaming completed.");
+                    }
+                });
+    }
+    @Transactional
+    public PersonalStatementResponse buildPersonalStatement() throws JsonProcessingException {
+        Member member = memberService.getMember();
+        String email = member.getEmail();
+
+        ChatList chatHistory = getChatHistory(email);
+        String history = objectMapper.writeValueAsString(chatHistory);
+        String recommend = redisTemplate.opsForValue().get("AI_RECOMMEND_JOB" + email);
+
+        ClovaRequestList clovaRequestList = clovaMapper.personalStatement(history, recommend);
+
+        String body = objectMapper.writeValueAsString(clovaRequestList);
+
+        RestTemplate restTemplate = new RestTemplate();
+        String url = apiUrl;
+        HttpHeaders headers = buildHeaders();
+        HttpEntity<String> entity = new HttpEntity<>(body, headers);
+
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+        String content = response.getBody();
+
+        PersonalStatementResponse personalStatementResponse = PersonalStatementResponse.builder()
+                .content(content)
+                .name(member.getName())
+                .build();
+
+        personalStatementService.save(personalStatementResponse, member);
+
+        return personalStatementResponse;
+    }
+
+    public HttpHeaders buildHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("X-NCP-CLOVASTUDIO-API-KEY", apiKey);
+        headers.set("X-NCP-APIGW-API-KEY", gatewayKey);
+
+        return headers;
     }
 }
