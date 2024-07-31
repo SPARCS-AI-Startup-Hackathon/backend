@@ -9,6 +9,7 @@ import com.backend.backend.global.common.CommonUtil;
 import com.backend.backend.member.domain.Member;
 import com.backend.backend.member.repository.MemberRepository;
 import com.backend.backend.member.service.MemberService;
+import com.backend.backend.personalstatement.domain.PersonalStatement;
 import com.backend.backend.personalstatement.dto.response.PersonalStatementResponse;
 import com.backend.backend.personalstatement.service.PersonalStatementService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -399,9 +400,14 @@ public class ClovaApiService {
                 .name(member.getName())
                 .build();
 
-        personalStatementService.save(personalStatementResponse, member);
+        PersonalStatement pr = personalStatementService.save(personalStatementResponse, member);
 
-        return personalStatementResponse;
+        return PersonalStatementResponse.builder()
+                .id(pr.getId())
+                .job(recommend)
+                .content(psContent)
+                .name(member.getName())
+                .build();
     }
 
     public HttpHeaders buildHeaders() {
