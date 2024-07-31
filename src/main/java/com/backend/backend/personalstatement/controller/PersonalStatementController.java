@@ -3,6 +3,7 @@ package com.backend.backend.personalstatement.controller;
 import com.backend.backend.personalstatement.dto.request.PersonalStatementUpdate;
 import com.backend.backend.personalstatement.dto.response.PersonalStatementResponse;
 import com.backend.backend.personalstatement.service.PersonalStatementService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
+@Tag(name = "자기소개서 API", description = "자기소개서 API")
 @RequestMapping("/api")
 public class PersonalStatementController {
     private final PersonalStatementService personalStatementService;
