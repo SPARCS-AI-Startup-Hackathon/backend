@@ -36,7 +36,7 @@ public class ClovaMapper {
 
         ClovaRequest promptUpdate = ClovaRequest.builder()
                 .role("system")
-                .content(Prompt.PROMPT_DATA + "추가로 이건 현재까지 대화내역이야\n" + history + "\n" + Prompt.UPDATE_PROMPT)
+                .content(Prompt.PROMPT_DATA + "추가로 이건 현재까지 대화내역이야\n" + history + "\n" + Prompt.UPDATE_PROMPT+Prompt.QUESTION_RULE)
                 .build();
         requestList.add(promptUpdate);
 
@@ -48,11 +48,41 @@ public class ClovaMapper {
     public ClovaRequestList recommend(String history){
         List<ClovaRequest> requestList = new ArrayList<>();
 
-        ClovaRequest promptUpdate = ClovaRequest.builder()
+        ClovaRequest recommendDate = ClovaRequest.builder()
                 .role("system")
                 .content(Prompt.RECOMMEND_PROMPT_FIRST + history + Prompt.RECOMMEND_PROMPT_SECOND)
                 .build();
-        requestList.add(promptUpdate);
+        requestList.add(recommendDate);
+
+        return ClovaRequestList.builder()
+                .messages(requestList)
+                .build();
+    }
+
+    public ClovaRequestList reRecommend(String history, String recommended) {
+        List<ClovaRequest> requestList = new ArrayList<>();
+
+        ClovaRequest reRecommendDate = ClovaRequest.builder()
+                .role("system")
+                .content(Prompt.RE_RECOMMEND_PROMPT_FIRST + recommended + Prompt.RE_RECOMMEND_PROMPT_SECOND + history +
+                        Prompt.RE_RECOMMEND_PROMPT_THIRD)
+                .build();
+        requestList.add(reRecommendDate);
+
+        return ClovaRequestList.builder()
+                .messages(requestList)
+                .build();
+    }
+
+    public ClovaRequestList personalStatement(String history, String recommended) {
+        List<ClovaRequest> requestList = new ArrayList<>();
+
+        ClovaRequest personalStatementData = ClovaRequest.builder()
+                .role("system")
+                .content(Prompt.PERSONAL_STATEMENT_PROMPT_FIRST + history + Prompt.PERSONAL_STATEMENT_PROMPT_SECOND +
+                        Prompt.PERSONAL_STATEMENT_PROMPT_TIRED)
+                .build();
+        requestList.add(personalStatementData);
 
         return ClovaRequestList.builder()
                 .messages(requestList)
