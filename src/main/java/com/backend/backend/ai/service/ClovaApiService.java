@@ -2,6 +2,9 @@ package com.backend.backend.ai.service;
 
 import com.backend.backend.ai.dto.request.ChatMessage;
 import com.backend.backend.ai.dto.request.ClovaRequestList;
+import com.backend.backend.ai.dto.response.ChatList;
+import com.backend.backend.ai.dto.response.ChatResponse;
+import com.backend.backend.ai.dto.response.SttResponse;
 import com.backend.backend.ai.mapper.ClovaMapper;
 import com.backend.backend.config.security.jwt.TokenProvider;
 import com.backend.backend.member.domain.Member;
@@ -12,21 +15,24 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tomcat.util.http.fileupload.InvalidFileNameException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.file.Files;
 import java.time.Duration;
+import java.util.List;
+import java.util.Objects;
 
 
 @Service
@@ -39,15 +45,18 @@ public class ClovaApiService {
     private String apiKey;
     @Value("${spring.clova.api.api_gateway_key}")
     private String gatewayKey;
+    @Value("${spring.stt.api.client_id}")
+    private String clientId;
+    @Value("${spring.stt.api.client_secret}")
+    private String clientSecret;
     private final ObjectMapper objectMapper;
     private final ClovaMapper clovaMapper;
     private final MemberService memberService;
     private final RedisTemplate<String, String> redisTemplate;
-    private final WebClient webClient;
+    private final WebClient clovaWebClient;
+    private final WebClient sttWebClient;
     private final MemberRepository memberRepository;
     private final TokenProvider tokenProvider;
-
-
     /**
      * 회원의 정보를 바탕으로 클라이언트측에 질문 하나 생성해서 던져주기
      */
@@ -58,7 +67,7 @@ public class ClovaApiService {
 
         String body = objectMapper.writeValueAsString(clovaRequestList);
 
-        return webClient.post()
+        return clovaWebClient.post()
                 .uri(apiUrl)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.ACCEPT, MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -104,39 +113,178 @@ public class ClovaApiService {
     }
 
 
-    @Transactional
-    public String callChatCompletionApi(ChatMessage request) throws JsonProcessingException {
-        Member member = memberService.getMember();
+    /**
+     * 지금까지 했던 질문 + 답변 + 첫 프롬프팅을 다시 system에 넣어줘야함
+     */
+    public Flux<String> callChatCompletionApi(String token) throws JsonProcessingException {
+        String email = tokenProvider.getEmailFromToken(token);
 
-        ClovaRequestList clovaRequestList = clovaMapper.messageMapper(request, member);
+        ChatList chatHistory = getChatHistory();
+        String history = objectMapper.writeValueAsString(chatHistory);
 
-        RestTemplate restTemplate = new RestTemplate();
-        String url = apiUrl;
-        HttpHeaders headers = buildHeaders();
+        ClovaRequestList clovaRequestList = clovaMapper.questionBuild(history);
+
         String body = objectMapper.writeValueAsString(clovaRequestList);
-        HttpEntity<String> entity = new HttpEntity<>(body, headers);
 
-
-        log.info("header: {}", entity.getHeaders());
-        log.info("body: {}", entity.getBody());
-
-        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
-
-        String data = redisTemplate.opsForValue().get(member.getEmail());
-        // 사용자 답변 내용 저장
-        redisTemplate.opsForValue().set(member.getEmail(), request.getMessage());
-        // AI 다음 질문(답변) 저장
-
-        return response.getBody();
+        return clovaWebClient.post()
+                .uri(apiUrl)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.ACCEPT, MediaType.TEXT_EVENT_STREAM_VALUE)
+                .header("X-NCP-CLOVASTUDIO-API-KEY", apiKey)
+                .header("X-NCP-APIGW-API-KEY", gatewayKey)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToFlux(String.class)
+                .delayElements(Duration.ofMillis(200))
+                .doOnNext(response -> {
+                    log.info("RESPONSE: {}", response);
+                    if (response.contains("seed")) {
+                        try {
+                            JsonNode jsonNode = objectMapper.readTree(response);
+                            JsonNode messageNode = jsonNode.get("message");
+                            JsonNode contentNode = messageNode.get("content");
+                            String content = contentNode.asText();
+                            log.info("최종컨텐츠:{}", content);
+                            redisTemplate.opsForList().rightPush("AI" + email, content);
+                            log.info("RedisContentAI:{}",redisTemplate.opsForList().range("AI" + email, 0, -1));
+                            log.info("USER_ANSWER:{}",redisTemplate.opsForList().range("USER"+email, 0, -1));
+                        } catch (JsonProcessingException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                })
+                .doFinally(signalType -> {
+                    if (signalType == SignalType.ON_COMPLETE) {
+                        log.info("Streaming completed.");
+                    }
+                });
     }
 
-    public HttpHeaders buildHeaders() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.add("Accept", "text/event-stream");
-        headers.set("X-NCP-CLOVASTUDIO-API-KEY", apiKey);
-        headers.set("X-NCP-APIGW-API-KEY", gatewayKey);
+    public SttResponse getTextByFile(MultipartFile file) {
+        File convFile = null;
+        try {
+            convFile = new File(Objects.requireNonNull(file.getOriginalFilename()));
+            convFile.createNewFile();
+            FileOutputStream fos = new FileOutputStream(convFile);
+            fos.write(file.getBytes());
+            fos.close();
 
-        return headers;
+            String response = soundToText(convFile);
+            return SttResponse.builder()
+                    .text(response)
+                    .build();
+        } catch (Exception e) {
+            throw new InvalidFileNameException("잘못된 파일", null);
+        }finally {
+            if (convFile != null && convFile.exists()) {
+                convFile.delete();
+            }
+        }
+    }
+    public String soundToText(File file) {
+        try {
+            byte[] fileContent = Files.readAllBytes(file.toPath());
+            String language = "Kor";
+
+            Mono<String> responseMono = sttWebClient.post()
+                    .uri(uriBuilder -> uriBuilder.path("/recog/v1/stt")
+                            .queryParam("lang", language)
+                            .build())
+                    .header("X-NCP-APIGW-API-KEY-ID", clientId)
+                    .header("X-NCP-APIGW-API-KEY", clientSecret)
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .bodyValue(fileContent)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .map(this::getTextFromResponse);
+
+            return responseMono.block();
+        } catch (Exception e) {
+            System.out.println(e);
+            return null;
+        }
+    }
+
+    private String getTextFromResponse(String responseStr) {
+        try {
+            return objectMapper.readValue(responseStr, SttResponse.class).getText();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public ChatList getChatHistory() {
+        Member member = memberService.getMember();
+        String name = member.getName();
+        ChatList chatList = new ChatList();
+        String email = member.getEmail();
+
+        List<String> aiQuestions = redisTemplate.opsForList().range("AI" + email, 0, -1);
+        List<String> userAnswers = redisTemplate.opsForList().range("USER" + email, 0, -1);
+
+        int size = Math.min(aiQuestions.size(), userAnswers.size());
+
+        for (int i = 0; i < size; i++) {
+            String aiQuestion = aiQuestions.get(i);
+            String userAnswer = userAnswers.get(i);
+
+            chatList.getChatResponses().add(ChatResponse.builder()
+                    .sender("빛나래")
+                    .content(aiQuestion)
+                    .build());
+            chatList.getChatResponses().add(ChatResponse.builder()
+                    .sender(name)
+                    .content(userAnswer)
+                    .build());
+        }
+        // 질문의 수가 답변의 수보다 많다면 마지막 질문 추가
+        if (aiQuestions.size() > userAnswers.size()) {
+            chatList.getChatResponses().add(new ChatResponse("빛나래", aiQuestions.get(size)));
+        }
+
+        return chatList;
+    }
+
+    public Flux<String> getRecommend(String token) throws JsonProcessingException {
+        String email = tokenProvider.getEmailFromToken(token);
+
+        ChatList chatHistory = getChatHistory();
+        String history = objectMapper.writeValueAsString(chatHistory);
+
+        ClovaRequestList clovaRequestList = clovaMapper.recommend(history);
+
+        String body = objectMapper.writeValueAsString(clovaRequestList);
+
+        return clovaWebClient.post()
+                .uri(apiUrl)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.ACCEPT, MediaType.TEXT_EVENT_STREAM_VALUE)
+                .header("X-NCP-CLOVASTUDIO-API-KEY", apiKey)
+                .header("X-NCP-APIGW-API-KEY", gatewayKey)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToFlux(String.class)
+                .delayElements(Duration.ofMillis(200))
+                .doOnNext(response -> {
+                    log.info("RESPONSE: {}", response);
+                    if (response.contains("seed")) {
+                        try {
+                            JsonNode jsonNode = objectMapper.readTree(response);
+                            JsonNode messageNode = jsonNode.get("message");
+                            JsonNode contentNode = messageNode.get("content");
+                            String content = contentNode.asText();
+                            redisTemplate.opsForValue().set("AI_RECOMMEND_JOB" + email, content);
+                            log.info("AI_RECOMMEND_JOB : {}", redisTemplate.opsForValue().get("AI_RECOMMEND_JOB" + email));
+                        } catch (JsonProcessingException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                })
+                .doFinally(signalType -> {
+                    if (signalType == SignalType.ON_COMPLETE) {
+                        log.info("Streaming completed.");
+                    }
+                });
+
     }
 }
