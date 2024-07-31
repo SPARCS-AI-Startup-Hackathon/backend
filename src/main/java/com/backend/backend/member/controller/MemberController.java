@@ -5,6 +5,7 @@ import com.backend.backend.config.security.jwt.TokenProvider;
 import com.backend.backend.member.dto.request.MemberLoginRequest;
 import com.backend.backend.member.dto.request.MemberRequest;
 import com.backend.backend.member.dto.response.TokenResponseDto;
+import com.backend.backend.member.repository.MemberRepository;
 import com.backend.backend.member.service.MemberService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -55,7 +56,9 @@ public class MemberController {
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        TokenResponseDto token = tokenProvider.createToken(authentication);
+        String email = request.getEmail();
+
+        TokenResponseDto token = tokenProvider.createToken(authentication, email);
         String jwt = token.getAccessToken();
 
         HttpHeaders httpHeaders = new HttpHeaders();
@@ -63,7 +66,6 @@ public class MemberController {
 
         redisTemplate.opsForValue().set(authentication.getName(), token.getRefreshToken(),
                 token.getRefreshTokenValidationTime(), TimeUnit.MICROSECONDS);
-
 
         return ResponseEntity.ok().body(token);
     }

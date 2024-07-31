@@ -1,6 +1,8 @@
 package com.backend.backend.config.security.jwt;
 
+import com.backend.backend.member.domain.Member;
 import com.backend.backend.member.dto.response.TokenResponseDto;
+import com.backend.backend.member.repository.MemberRepository;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -25,7 +27,7 @@ import java.util.stream.Collectors;
 
 @Component
 public class TokenProvider implements InitializingBean {
-
+    private final MemberRepository memberRepository;
     private final Logger logger = LoggerFactory.getLogger(TokenProvider.class);
     private static final String AUTHORITIES_KEY = "auth";
     private final String secret;
@@ -34,8 +36,9 @@ public class TokenProvider implements InitializingBean {
     private Key key;
 
     public TokenProvider(
-            @Value("${jwt.secret}") String secret,
+            MemberRepository memberRepository, @Value("${jwt.secret}") String secret,
             @Value("${jwt.token-validity-in-seconds}") long tokenValidityInSeconds) {
+        this.memberRepository = memberRepository;
         this.secret = secret;
         this.tokenValidityInMilliseconds = tokenValidityInSeconds * 1000;
         this.refreshTokenValidationTime = tokenValidityInSeconds * 2 * 1000;
@@ -47,7 +50,7 @@ public class TokenProvider implements InitializingBean {
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public TokenResponseDto createToken(Authentication authentication) {
+    public TokenResponseDto createToken(Authentication authentication, String email) {
         String authorities = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
@@ -67,14 +70,17 @@ public class TokenProvider implements InitializingBean {
                 .signWith(key, SignatureAlgorithm.HS512)
                 .compact();
 
+        Member member = memberRepository.findByEmail(email);
+        String name = member.getName();
+
         return TokenResponseDto.builder()
+                .name(name)
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .accessTokenValidationTime(tokenValidityInMilliseconds)
                 .refreshTokenValidationTime(refreshTokenValidationTime)
                 .build();
     }
-
     public Authentication getAuthentication(String token) {
         Claims claims = Jwts
                 .parserBuilder()
