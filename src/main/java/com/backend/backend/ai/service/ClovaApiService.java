@@ -163,6 +163,10 @@ public class ClovaApiService {
     public SttResponse getTextByFile(MultipartFile file) {
         File convFile = null;
         try {
+            Member member = memberService.getMember();
+            String email = member.getEmail();
+            String redisKey = "USER" + email;
+
             convFile = new File(Objects.requireNonNull(file.getOriginalFilename()));
             convFile.createNewFile();
             FileOutputStream fos = new FileOutputStream(convFile);
@@ -170,9 +174,12 @@ public class ClovaApiService {
             fos.close();
 
             String response = soundToText(convFile);
-            return SttResponse.builder()
+            SttResponse sttResponse = SttResponse.builder()
                     .text(response)
                     .build();
+
+            redisTemplate.opsForList().rightPush(redisKey, sttResponse.getText());
+            return sttResponse;
         } catch (Exception e) {
             throw new InvalidFileNameException("잘못된 파일", null);
         }finally {
