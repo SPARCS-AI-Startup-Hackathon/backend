@@ -43,15 +43,15 @@ spring:
         mode: always
   data:
     redis:
+      host: redis
       port: 6379
-      host: localhost
-
+      ssl:
+        enabled: true
 #  data:
 #    redis:
-#      host: localhost
 #      port: 6379
-#      ssl:
-#        enabled: true
+#      host: localhost
+
 jwt:
   header: Authorization
   secret: c2lsdmVybmluZS10ZWNoLXNwcmluZy1ib290LWp3dC10dXRvcmlhbC1zZWNyZXQtc2lsdmVybmluZS10ZWNoLXNwcmluZy1ib290LWp3dC10dXRvcmlhbC1zZWNyZXQK

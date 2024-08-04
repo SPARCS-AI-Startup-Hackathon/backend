@@ -20,12 +20,7 @@ services:
     container_name: shine-year
     restart: always
     depends_on:
-      #      - db
       - redis
-#    environment:
-#      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
-#      MARIADB_USER: ${MARIADB_USER}
-#      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
     ports:
       - "8080:8080"
     volumes:
