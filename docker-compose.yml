@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+
+  redis:
+    container_name: redis
+    image: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - shine-year
+
+  back-end:
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shine-year
+    restart: always
+    depends_on:
+      #      - db
+      - redis
+#    environment:
+#      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+#      MARIADB_USER: ${MARIADB_USER}
+#      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    networks:
+      - shine-year
+networks:
+  shine-year:
+    driver: bridge
